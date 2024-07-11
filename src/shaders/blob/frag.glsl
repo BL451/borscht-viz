@@ -4,7 +4,6 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_z;
 uniform float u_level;
-uniform bool u_ssao;
 
 #define MAX_STEPS 25
 #define MAX_DIST 10.
@@ -153,19 +152,6 @@ void main(){
     float d=RayMarch(ro,rd);
     
     vec3 p=ro+rd*d;
-    
-    /*
-    // Diffuse lighting
-    float dif = GetLight(p, vec3(0,4,5), u_ssao);
-    //dif = max(dif, GetLight(p, vec3(-2,4,6), u_ssao));
-    // Modify contrast
-    
-    float s_c = 0.3;
-    float boost = 0.15;
-    if (dif < s_c){
-        dif += boost*(s_c-dif);
-    }
-    */
     
     // Distance is greater than 1 so we need to scale it to see anything, put this into col if you want to show a depth map rather than lighting
     d/=8.;

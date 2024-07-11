@@ -1,6 +1,5 @@
 let theShader, prev, next;
 let z = 0;
-let ssao = true;
 let level = 0;
 let prelevel = 0;
 const GAIN = 0.004;
@@ -17,6 +16,11 @@ let playImage, pauseImage, volumeImage, muteImage;
 let UI_SIZE, fps;
 
 const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// As of this writing, there appears to be a much-reported bug in Safari that prevents audio capture from a stream
+// All calls succeed without error, yet the output of the analyzer is always zeroes (only in Safari)
+// As a result, we'll include a special case for Safari to make the visualizer move based on a Perlin noise value while the stream is playing and unmuted
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 if (isMob) {
     UI_SIZE = 84;
     fps = 30;
@@ -80,19 +84,17 @@ function draw() {
         rate_mod = Math.min(60 / frameRate(), 2);
     }
 
-
-    if (audio_started && fft) {
+    if (isSafari && !streamElement.paused && !stream.muted) {
+        prelevel = 0.1 + 0.7 * noise(frameCount / 1000);
+    } else if (audio_started && fft) {
         fft.analyze();
         prelevel = GAIN * fft.getEnergy(16, 16384);
+        text(prelevel, 0, 0);
+    } else {
+        prelevel = 0;
     }
     z += rate_mod * Z_GAIN * prelevel
     level += rate_mod * LEVEL_GAIN * (prelevel - level);
-
-    if (mouseIsPressed) {
-        ssao = false;
-    } else {
-        ssao = true;
-    }
 
     // shader() sets the active shader with our shader
     next.begin();
@@ -102,7 +104,6 @@ function draw() {
     theShader.setUniform("u_time", millis() / 1000.0);
     theShader.setUniform("u_z", z);
     theShader.setUniform("u_level", 2 * level);
-    theShader.setUniform("u_ssao", ssao);
     shader(theShader);
 
     // rect gives us some geometry on the screen
