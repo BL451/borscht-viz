@@ -6,6 +6,7 @@ let prelevel = 0;
 const GAIN = 0.004;
 let Z_GAIN = 0.07;
 let LEVEL_GAIN = 0.1;
+let rate_mod = 1;
 let fft, mediaSource, audio_started;
 // Non-UI elements
 let streamElement;
@@ -75,14 +76,17 @@ function setup() {
 }
 
 function draw() {
-    const RATE_MOD = 60 / frameRate();
+    if (frameRate() != 0) {
+        rate_mod = Math.min(60 / frameRate(), 2);
+    }
+
 
     if (audio_started && fft) {
         fft.analyze();
         prelevel = GAIN * fft.getEnergy(16, 16384);
     }
-    z += RATE_MOD * Z_GAIN * prelevel
-    level += RATE_MOD * LEVEL_GAIN * (prelevel - level);
+    z += rate_mod * Z_GAIN * prelevel
+    level += rate_mod * LEVEL_GAIN * (prelevel - level);
 
     if (mouseIsPressed) {
         ssao = false;
