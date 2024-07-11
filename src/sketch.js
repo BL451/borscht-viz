@@ -4,6 +4,8 @@ let ssao = true;
 let level = 0;
 let prelevel = 0;
 const GAIN = 0.004;
+let Z_GAIN = 0.07;
+let LEVEL_GAIN = 0.1;
 let fft, mediaSource, audio_started;
 // Non-UI elements
 let streamElement;
@@ -27,11 +29,13 @@ function preload() {
 }
 
 function initUI() {
-    volumeSlider = createSlider(0, 1, 1, 0);
-    volumeSlider.addClass("slider");
-    volumeSlider.input(function () {
-        streamElement.volume = easeInSine(volumeSlider.value());
-    });
+    if (!isMob) {
+        volumeSlider = createSlider(0, 1, 1, 0);
+        volumeSlider.addClass("slider");
+        volumeSlider.input(function () {
+            streamElement.volume = easeInSine(volumeSlider.value());
+        });
+    }
     playPauseButton = createImg('./assets/play-button.svg');
     playPauseButton.mousePressed(togglePlay);
     playPauseButton.addClass("playButton");
@@ -41,9 +45,10 @@ function initUI() {
 }
 
 function positionUI() {
-    volumeSlider.position(width / 2, 4.4 * height / 5);
-    volumeSlider.center("horizontal");
-    //const ui_size = Math.max(width / 32, MIN_UI_SIZE);
+    if (!isMob) {
+        volumeSlider.position(width / 2, 4.4 * height / 5);
+        volumeSlider.center("horizontal");
+    }
     playPauseButton.size(UI_SIZE, UI_SIZE);
     playPauseButton.position(width / 2, 4.1 * height / 5);
     playPauseButton.center("horizontal");
@@ -66,16 +71,18 @@ function setup() {
     next = createFramebuffer();
     fft = new p5.FFT(0.6, 32);
     audio_started = false;
+    background(255);
 }
 
 function draw() {
-    background(255);
+    const RATE_MOD = 60 / frameRate();
+
     if (audio_started && fft) {
         fft.analyze();
         prelevel = GAIN * fft.getEnergy(16, 16384);
     }
-    z += 0.06 * prelevel
-    level += 0.1 * (prelevel - level);
+    z += RATE_MOD * Z_GAIN * prelevel
+    level += RATE_MOD * LEVEL_GAIN * (prelevel - level);
 
     if (mouseIsPressed) {
         ssao = false;
@@ -89,7 +96,6 @@ function draw() {
     // setUniform() sends values to the shader
     theShader.setUniform("u_resolution", [width, height]);
     theShader.setUniform("u_time", millis() / 1000.0);
-    theShader.setUniform("u_mouse", [mouseX, map(mouseY, 0, height, height, 0)]);
     theShader.setUniform("u_z", z);
     theShader.setUniform("u_level", 2 * level);
     theShader.setUniform("u_ssao", ssao);

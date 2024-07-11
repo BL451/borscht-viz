@@ -1,7 +1,6 @@
-precision mediump float;
+precision lowp float;
 
 uniform vec2 u_resolution;
-uniform vec2 u_mouse;
 uniform float u_time;
 uniform float u_z;
 uniform float u_level;
