@@ -11,8 +11,16 @@ let streamElement;
 let volumeSlider, playPauseButton, muteButton;
 // Image assets
 let playImage, pauseImage, volumeImage, muteImage;
+let UI_SIZE, fps;
 
-const UI_SIZE = 42;
+const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
+if (isMob) {
+    UI_SIZE = 84;
+    fps = 30;
+} else {
+    UI_SIZE = 42;
+    fps = 60;
+}
 
 function preload() {
     theShader = loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag.glsl');
@@ -49,14 +57,14 @@ function setup() {
     pixelDensity(1);
     createCanvas(windowWidth, windowHeight, WEBGL);
     imageMode(CENTER);
-    frameRate(60);
+    frameRate(fps);
     streamElement = document.getElementById("stream");
     // instantiate UI
     initUI();
     positionUI();
     //prev = createFramebuffer();
     next = createFramebuffer();
-    fft = new p5.FFT(0.8, 32);
+    fft = new p5.FFT(0.6, 32);
     audio_started = false;
 }
 
@@ -102,12 +110,12 @@ function initAudio() {
             mediaSource = context.createMediaElementSource(elem.elt);
             mediaSource.connect(p5.soundOut);
         }
-        streamElement.muted = false;
         audio_started = true;
     }
 }
 
 function togglePlay() {
+    initAudio();
     if (streamElement.paused) {
         streamElement.play();
         playPauseButton.elt.src = './assets/pause-button.svg';
@@ -118,6 +126,7 @@ function togglePlay() {
 }
 
 function toggleMute() {
+    initAudio();
     if (streamElement.muted) {
         streamElement.muted = false;
         muteButton.elt.src = './assets/volume-button.svg';
