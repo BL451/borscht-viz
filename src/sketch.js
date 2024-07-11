@@ -89,7 +89,6 @@ function draw() {
     } else if (audio_started && fft) {
         fft.analyze();
         prelevel = GAIN * fft.getEnergy(16, 16384);
-        text(prelevel, 0, 0);
     } else {
         prelevel = 0;
     }
