@@ -11,7 +11,7 @@ let fft, mediaSource, audio_started;
 // Non-UI elements
 let streamElement;
 // UI elements
-let volumeSlider, playPauseButton, muteButton, linkButton;
+let titleText, trackText, volumeSlider, donateButton, muteButton;
 let titleFont, uiFont, radioData;
 let timeRemaining = -1;
 let lastRequest = 0;
@@ -28,12 +28,12 @@ const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 if (isMob) {
     UI_SIZE = 84;
-    TITLE_TEXT_SIZE = 80;
+    TITLE_TEXT_SIZE = 100;
     RADIO_TEXT_SIZE = 44;
     fps = 30;
 } else {
     UI_SIZE = 42;
-    TITLE_TEXT_SIZE = 40;
+    TITLE_TEXT_SIZE = 50;
     RADIO_TEXT_SIZE = 22;
     fps = 60;
 }
@@ -44,42 +44,30 @@ function preload() {
     } else {
         theShader = loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag.glsl');
     }
-
-    titleFont = loadFont('./assets/fonts/Bolshevik-mJv9.otf');
-    uiFont = loadFont('./assets/fonts/TjfPastaRegular-3lRDz.ttf');
 }
 
 function initUI() {
-    if (!isMob) {
-        volumeSlider = createSlider(0, 1, 1, 0);
-        volumeSlider.addClass("slider");
-        volumeSlider.input(function () {
-            streamElement.volume = easeInSine(volumeSlider.value());
-        });
+    titleText = document.getElementById("titleText");
+    trackText = document.getElementById("trackText");
+    muteButton = document.getElementById("muteButton");
+    volumeSlider = document.getElementById("volumeSlider");
+    donateButton = document.getElementById("donateButton");
+    muteButton.addEventListener("mousedown", toggleMute);
+    donateButton.addEventListener("mousedown", openDonateLink);
+    if (isMob) {
+        volumeSlider.remove();
+        titleText.style.fontSize = TITLE_TEXT_SIZE + "px";
+        trackText.style.fontSize = RADIO_TEXT_SIZE + "px";
+        trackText.style.lineHeight = 1.2 * RADIO_TEXT_SIZE + "px";
+        muteButton.style.width = UI_SIZE + "px";
+        muteButton.style.height = UI_SIZE + "px";
+        muteButton.style.bottom = UI_SIZE / 3 + "px";
+        donateButton.style.width = UI_SIZE + "px";
+        donateButton.style.height = UI_SIZE + "px";
+    } else {
+        volumeSlider.addEventListener("input", setVolume);
+        setVolume();
     }
-    playPauseButton = createImg('./assets/play-button.svg');
-    playPauseButton.mousePressed(togglePlay);
-    playPauseButton.addClass("button");
-    muteButton = createImg('./assets/volume-button.svg');
-    muteButton.mousePressed(toggleMute);
-    muteButton.addClass("button");
-    linkButton = createImg('./assets/external-link-button.svg');
-    linkButton.mousePressed(openLink);
-    linkButton.addClass("button");
-}
-
-function positionUI() {
-    if (!isMob) {
-        volumeSlider.position(width / 2, 0.945 * height);
-        volumeSlider.center("horizontal");
-    }
-    const y = 0.88 * height;
-    playPauseButton.size(UI_SIZE, UI_SIZE);
-    playPauseButton.position(width / 2 - UI_SIZE / 2, y);
-    muteButton.size(UI_SIZE, UI_SIZE);
-    muteButton.position(width / 2 + 2 * UI_SIZE / 2, y);
-    linkButton.size(UI_SIZE, UI_SIZE);
-    linkButton.position(width / 2 - 4 * UI_SIZE / 2, y);
 }
 
 function setup() {
@@ -91,7 +79,6 @@ function setup() {
     streamElement = document.getElementById("stream");
     // instantiate UI
     initUI();
-    positionUI();
     //prev = createFramebuffer();
     next = createFramebuffer();
     fft = new p5.FFT(0.6, 32);
@@ -101,9 +88,6 @@ function setup() {
 }
 
 function draw() {
-    timeRemaining -= deltaTime;
-
-    getNowPlaying();
     if (frameRate() != 0) {
         rate_mod = Math.min(60 / frameRate(), 2);
     }
@@ -133,30 +117,33 @@ function draw() {
     rect(0, 0, width, height);
     next.end();
     image(next, 0, 0);
-    textFont(titleFont);
+
     const title_size_mod = isMob ? 0 : 0.5 * TITLE_TEXT_SIZE * prelevel;
-    textSize(TITLE_TEXT_SIZE + title_size_mod);
-    text("Borscht Radio", 0, -height * 0.41)
-    if (radioData && !streamElement.paused) {
-        textFont(uiFont);
-        textSize(RADIO_TEXT_SIZE);
-        text(radioData.now_playing.song.title, 0, height * 0.36);
-        text(radioData.now_playing.song.artist, 0, height * 0.33);
+    if (title_size_mod != 0) {
+        titleText.style.fontSize = str(TITLE_TEXT_SIZE + title_size_mod) + 'px';
     }
 }
 
 function getNowPlaying() {
     const now = Date.now();
-    if (audio_started && (now - lastRequest) > RATE_LIMIT && timeRemaining <= 0) {
+    if (audio_started && (now - lastRequest) > RATE_LIMIT) {
         lastRequest = now;
         fetch(NOW_PLAYING_URL).then(function (response) {
             return response.json();
         }).then(function (data) {
             radioData = data[0];
-            timeRemaining = 1000 * radioData.now_playing.remaining;
             console.log(radioData);
+            if (radioData.live.is_live) {
+                timeRemaining = 30 * 1000;
+                trackText.innerText = "> LIVE <" + "\n" + radioData.live.streamer_name;
+            } else {
+                timeRemaining = 1000 * radioData.now_playing.remaining;
+                trackText.innerText = radioData.now_playing.song.artist + "\n" + radioData.now_playing.song.title;
+            }
+            setTimeout(getNowPlaying, 1000 + timeRemaining);
         }).catch(function (err) {
             console.log('Fetch Error :-S', err);
+            setTimeout(getNowPlaying, 30 * 1000);
         });
     }
 }
@@ -171,18 +158,8 @@ function initAudio() {
             mediaSource.connect(p5.soundOut);
         }
         audio_started = true;
-        getNowPlaying();
-    }
-}
-
-function togglePlay() {
-    initAudio();
-    if (streamElement.paused) {
         streamElement.play();
-        playPauseButton.elt.src = './assets/pause-button.svg';
-    } else {
-        streamElement.pause();
-        playPauseButton.elt.src = './assets/play-button.svg';
+        getNowPlaying();
     }
 }
 
@@ -190,10 +167,10 @@ function toggleMute() {
     initAudio();
     if (streamElement.muted) {
         streamElement.muted = false;
-        muteButton.elt.src = './assets/volume-button.svg';
+        muteButton.src = './assets/volume-button.svg';
     } else {
         streamElement.muted = true;
-        muteButton.elt.src = './assets/mute-button.svg';
+        muteButton.src = './assets/mute-button.svg';
     }
 }
 
@@ -201,15 +178,14 @@ function openLink() {
     window.open("https://borschtrecords.ca");
 }
 
-function mousePressed() {
-    initAudio();
+function openDonateLink() {
+    window.open("https://www.paypal.com/paypalme/DMorgacheva");
 }
 
-function touchStarted() {
-    initAudio();
+function setVolume() {
+    streamElement.volume = easeInSine(volumeSlider.value);
 }
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
-    positionUI();
 }

@@ -3,9 +3,13 @@
 
 <head>
     <meta charset="utf-8" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
     <!-- preload="none" allows the page to load instantly on mobile -->
     <audio id="stream" preload="none" src="https://borschtrecords.ca/listen/borscht/radio.mp3" type="audio/mpeg"
-        crossorigin="anonymous"></audio>
+        crossorigin="anonymous" muted="true"></audio>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
     <script src="./src/utils.js"></script>
@@ -13,6 +17,15 @@
 </head>
 
 <body>
+    <h1 id="titleText" class="headerText">Borscht Radio</h1>
+    <div id="player" class="player">
+        <p id="trackText" class="trackText" style="font-size: 22px; line-height: 26.4px;"> </p>
+        <img id="muteButton" src="./assets/mute-button.svg" class="button muteButton" width="42" height="42"
+            style="width: 42px; height: 42px;">
+        <input id="volumeSlider" type="range" min="0" max="1" step="1e-18" class="slider">
+    </div>
+    <img id="donateButton" src="./assets/heart-hand-button.svg" class="button donateButton" width="42" height="42"
+        style="width: 42px; height: 42px;">
     <script src="./src/sketch.js"></script>
 </body>
 
