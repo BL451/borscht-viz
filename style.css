@@ -47,7 +47,7 @@ canvas {
     cursor: pointer;
 }
 
-.playButton {
+.button {
     height: 32px;
     width: 32px;
     opacity: 0.7;
@@ -56,6 +56,6 @@ canvas {
     cursor: pointer;
 }
 
-.playButton:hover {
+.button:hover {
     opacity: 1;
 }

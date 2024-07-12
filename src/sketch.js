@@ -3,6 +3,7 @@ let z = 0;
 let level = 0;
 let prelevel = 0;
 const GAIN = 0.004;
+const RATE_LIMIT = 10 * 1000;
 let Z_GAIN = 0.07;
 let LEVEL_GAIN = 0.1;
 let rate_mod = 1;
@@ -10,10 +11,14 @@ let fft, mediaSource, audio_started;
 // Non-UI elements
 let streamElement;
 // UI elements
-let volumeSlider, playPauseButton, muteButton;
+let volumeSlider, playPauseButton, muteButton, linkButton;
+let titleFont, uiFont, radioData;
+let timeRemaining = -1;
+let lastRequest = 0;
 // Image assets
 let playImage, pauseImage, volumeImage, muteImage;
-let UI_SIZE, fps;
+let TITLE_TEXT_SIZE, RADIO_TEXT_SIZE, UI_SIZE, fps;
+const NOW_PLAYING_URL = "https://borschtrecords.ca/api/nowplaying"
 
 const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
 // As of this writing, there appears to be a much-reported bug in Safari that prevents audio capture from a stream
@@ -23,14 +28,25 @@ const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 if (isMob) {
     UI_SIZE = 84;
+    TITLE_TEXT_SIZE = 80;
+    RADIO_TEXT_SIZE = 44;
     fps = 30;
 } else {
     UI_SIZE = 42;
+    TITLE_TEXT_SIZE = 40;
+    RADIO_TEXT_SIZE = 22;
     fps = 60;
 }
 
 function preload() {
-    theShader = loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag.glsl');
+    if (isMob) {
+        theShader = loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag-mobile.glsl');
+    } else {
+        theShader = loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag.glsl');
+    }
+
+    titleFont = loadFont('./assets/fonts/Bolshevik-mJv9.otf');
+    uiFont = loadFont('./assets/fonts/TjfPastaRegular-3lRDz.ttf');
 }
 
 function initUI() {
@@ -43,23 +59,27 @@ function initUI() {
     }
     playPauseButton = createImg('./assets/play-button.svg');
     playPauseButton.mousePressed(togglePlay);
-    playPauseButton.addClass("playButton");
+    playPauseButton.addClass("button");
     muteButton = createImg('./assets/volume-button.svg');
     muteButton.mousePressed(toggleMute);
-    muteButton.addClass("playButton");
+    muteButton.addClass("button");
+    linkButton = createImg('./assets/external-link-button.svg');
+    linkButton.mousePressed(openLink);
+    linkButton.addClass("button");
 }
 
 function positionUI() {
     if (!isMob) {
-        volumeSlider.position(width / 2, 4.4 * height / 5);
+        volumeSlider.position(width / 2, 0.945 * height);
         volumeSlider.center("horizontal");
     }
+    const y = 0.88 * height;
     playPauseButton.size(UI_SIZE, UI_SIZE);
-    playPauseButton.position(width / 2, 4.1 * height / 5);
-    playPauseButton.center("horizontal");
+    playPauseButton.position(width / 2 - UI_SIZE / 2, y);
     muteButton.size(UI_SIZE, UI_SIZE);
-    muteButton.position(width / 2, 4.6 * height / 5);
-    muteButton.center("horizontal");
+    muteButton.position(width / 2 + 2 * UI_SIZE / 2, y);
+    linkButton.size(UI_SIZE, UI_SIZE);
+    linkButton.position(width / 2 - 4 * UI_SIZE / 2, y);
 }
 
 function setup() {
@@ -77,15 +97,19 @@ function setup() {
     fft = new p5.FFT(0.6, 32);
     audio_started = false;
     background(255);
+    textAlign(CENTER);
 }
 
 function draw() {
+    timeRemaining -= deltaTime;
+
+    getNowPlaying();
     if (frameRate() != 0) {
         rate_mod = Math.min(60 / frameRate(), 2);
     }
 
     if (isSafari && !streamElement.paused && !stream.muted) {
-        prelevel = 0.1 + 0.7 * noise(frameCount / 1000);
+        prelevel = 0.1 + 0.8 * noise(frameCount / 100);
     } else if (audio_started && fft) {
         fft.analyze();
         prelevel = GAIN * fft.getEnergy(16, 16384);
@@ -109,6 +133,32 @@ function draw() {
     rect(0, 0, width, height);
     next.end();
     image(next, 0, 0);
+    textFont(titleFont);
+    const title_size_mod = isMob ? 0 : 0.5 * TITLE_TEXT_SIZE * prelevel;
+    textSize(TITLE_TEXT_SIZE + title_size_mod);
+    text("Borscht Radio", 0, -height * 0.41)
+    if (radioData && !streamElement.paused) {
+        textFont(uiFont);
+        textSize(RADIO_TEXT_SIZE);
+        text(radioData.now_playing.song.title, 0, height * 0.36);
+        text(radioData.now_playing.song.artist, 0, height * 0.33);
+    }
+}
+
+function getNowPlaying() {
+    const now = Date.now();
+    if (audio_started && (now - lastRequest) > RATE_LIMIT && timeRemaining <= 0) {
+        lastRequest = now;
+        fetch(NOW_PLAYING_URL).then(function (response) {
+            return response.json();
+        }).then(function (data) {
+            radioData = data[0];
+            timeRemaining = 1000 * radioData.now_playing.remaining;
+            console.log(radioData);
+        }).catch(function (err) {
+            console.log('Fetch Error :-S', err);
+        });
+    }
 }
 
 function initAudio() {
@@ -121,6 +171,7 @@ function initAudio() {
             mediaSource.connect(p5.soundOut);
         }
         audio_started = true;
+        getNowPlaying();
     }
 }
 
@@ -144,6 +195,10 @@ function toggleMute() {
         streamElement.muted = true;
         muteButton.elt.src = './assets/mute-button.svg';
     }
+}
+
+function openLink() {
+    window.open("https://borschtrecords.ca");
 }
 
 function mousePressed() {

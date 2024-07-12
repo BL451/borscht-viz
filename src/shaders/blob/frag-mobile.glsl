@@ -5,7 +5,7 @@ uniform float u_time;
 uniform float u_z;
 uniform float u_level;
 
-#define MAX_STEPS 23
+#define MAX_STEPS 10
 #define MAX_DIST 8.
 #define SURF_DIST.01
 
@@ -38,7 +38,7 @@ float GetDist(vec3 p){
     // x, y, z, r of the spheres
     float so=0.;
     float d=10.;
-    for(float i=0.;i<13.;i++){
+    for(float i=0.;i<8.;i++){
         vec4 so=vec4(u_level*sin(.2*i+u_z)*cos(i+.5*u_z),1.+u_level*sin(i*.1)*sin(i+.8*u_z),5.+u_level*cos(i*.6)*sin(i+.55*u_z),.1+.3*abs(sin(u_z+i)));
         d=opSmoothUnion(d,sdSphere(so,p),u_level*abs(.4*sin(i)));
     }
