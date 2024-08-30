@@ -173,7 +173,7 @@ let p_2d = function (p) {
             p.circle(
                 short_side * level * pos.x + p.width / 2,
                 short_side * level * pos.y + p.height / 2,
-                pos.r * short_side * 0.8,
+                pos.r * short_side * 0.5,
             );
         }
 
