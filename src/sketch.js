@@ -11,7 +11,14 @@ let fft, mediaSource, audio_started;
 // Non-UI elements
 let streamElement;
 // UI elements
-let titleText, trackText, volumeSlider, donateButton, muteButton, vizModeButton, bandcampLinkButton, sketchRunButton;
+let titleText,
+    trackText,
+    volumeSlider,
+    donateButton,
+    muteButton,
+    vizModeButton,
+    bandcampLinkButton,
+    sketchRunButton;
 let titleFont, uiFont, radioData;
 let timeRemaining = -1;
 let lastRequest = 0;
@@ -24,16 +31,22 @@ let viz = null;
 let sketch_running = true;
 
 // p5 source that runs in 3D mode
-let p_3d = function(p){
-    p.preload = function(){
+let p_3d = function (p) {
+    p.preload = function () {
         if (isMob) {
-            theShader = p.loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag-mobile.glsl');
+            theShader = p.loadShader(
+                "./src/shaders/blob/vert.glsl",
+                "./src/shaders/blob/frag-mobile.glsl",
+            );
         } else {
-            theShader = p.loadShader('./src/shaders/blob/vert.glsl', './src/shaders/blob/frag.glsl');
+            theShader = p.loadShader(
+                "./src/shaders/blob/vert.glsl",
+                "./src/shaders/blob/frag.glsl",
+            );
         }
-    }
+    };
 
-    p.setup = function() {
+    p.setup = function () {
         // disables scaling for retina screens which can create inconsistent scaling between displays
         p.pixelDensity(1);
         cnv = p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
@@ -48,13 +61,13 @@ let p_3d = function(p){
         LEVEL_GAIN = 0.1;
         Z_GAIN = 0.07;
         sketch_running = true;
-    }
+    };
 
-    p.draw = function() {
+    p.draw = function () {
         if (p.frameRate() != 0) {
             rate_mod = Math.min(60 / p.frameRate(), 2);
         }
-    
+
         if (isSafari && !streamElement.paused && !stream.muted) {
             prelevel = 0.1 + 0.8 * p.noise(p.frameCount / 100);
         } else if (audio_started && fft) {
@@ -63,7 +76,7 @@ let p_3d = function(p){
         } else {
             prelevel = 0;
         }
-        z += rate_mod * Z_GAIN * prelevel
+        z += rate_mod * Z_GAIN * prelevel;
         level += rate_mod * LEVEL_GAIN * (prelevel - level);
         // shader() sets the active shader with our shader
         next.begin();
@@ -79,19 +92,19 @@ let p_3d = function(p){
         p.rect(0, 0, p.width, p.height);
         next.end();
         p.image(next, 0, 0);
-    
+
         const title_size_mod = isMob ? 0 : 0.5 * TITLE_TEXT_SIZE * prelevel;
         if (title_size_mod != 0) {
-            titleText.style.fontSize = TITLE_TEXT_SIZE + title_size_mod + 'px';
+            titleText.style.fontSize = TITLE_TEXT_SIZE + title_size_mod + "px";
         }
-    }
+    };
 
-    p.initAudio = function() {
+    p.initAudio = function () {
         if (!audio_started) {
             p.userStartAudio();
             let context = p.getAudioContext();
             // wire all media elements up to the p5.sound AudioContext
-            for (let elem of p.selectAll('audio')) {
+            for (let elem of p.selectAll("audio")) {
                 mediaSource = context.createMediaElementSource(elem.elt);
                 mediaSource.connect(p.soundOut);
             }
@@ -99,25 +112,25 @@ let p_3d = function(p){
             streamElement.play();
             getNowPlaying();
         }
-    }
+    };
 
-    p.windowResized = function(){
+    p.windowResized = function () {
         p.resizeCanvas(window.innerWidth, window.innerHeight);
-    }
+    };
 
-    p.toggleDrawLoop = function(){
+    p.toggleDrawLoop = function () {
         sketch_running = !sketch_running;
-        if (sketch_running){
+        if (sketch_running) {
             p.loop();
         } else {
             p.noLoop();
         }
-    }
-}
+    };
+};
 
 // p5 source that runs in 2D mode
-let p_2d = function(p){
-    p.setup = function() {
+let p_2d = function (p) {
+    p.setup = function () {
         // disables scaling for retina screens which can create inconsistent scaling between displays
         p.pixelDensity(1);
         cnv = p.createCanvas(window.innerWidth, window.innerHeight);
@@ -135,14 +148,14 @@ let p_2d = function(p){
         Z_GAIN = 0.05;
         short_side = Math.min(p.width, p.height);
         sketch_running = true;
-    }
+    };
 
-    p.draw = function() {
+    p.draw = function () {
         p.background(0);
         if (p.frameRate() != 0) {
             rate_mod = Math.min(60 / p.frameRate(), 2);
         }
-    
+
         if (isSafari && !streamElement.paused && !stream.muted) {
             prelevel = 0.1 + 0.8 * p.noise(p.frameCount / 100);
         } else if (audio_started && fft) {
@@ -151,27 +164,31 @@ let p_2d = function(p){
         } else {
             prelevel = 0;
         }
-        z += rate_mod * Z_GAIN * prelevel
+        z += rate_mod * Z_GAIN * prelevel;
         level += rate_mod * LEVEL_GAIN * (prelevel - level);
         const NUM_CIRCLES = 8;
-        for (let i = 0; i < NUM_CIRCLES; i++){
-            let pos = wobble(level, i, 0.88*z);
+        for (let i = 0; i < NUM_CIRCLES; i++) {
+            let pos = wobble(level, i, 0.88 * z);
             p.fill(0, 100, 70, pos.r);
-            p.circle(short_side*level*pos.x + p.width/2, short_side*level*pos.y + p.height/2, pos.r*short_side*0.8);
+            p.circle(
+                short_side * level * pos.x + p.width / 2,
+                short_side * level * pos.y + p.height / 2,
+                pos.r * short_side * 0.8,
+            );
         }
 
         const title_size_mod = isMob ? 0 : 0.5 * TITLE_TEXT_SIZE * prelevel;
         if (title_size_mod != 0) {
-            titleText.style.fontSize = TITLE_TEXT_SIZE + title_size_mod + 'px';
+            titleText.style.fontSize = TITLE_TEXT_SIZE + title_size_mod + "px";
         }
-    }
+    };
 
-    p.initAudio = function() {
+    p.initAudio = function () {
         if (!audio_started) {
             p.userStartAudio();
             let context = p.getAudioContext();
             // wire all media elements up to the p5.sound AudioContext
-            for (let elem of p.selectAll('audio')) {
+            for (let elem of p.selectAll("audio")) {
                 mediaSource = context.createMediaElementSource(elem.elt);
                 mediaSource.connect(p.soundOut);
             }
@@ -179,25 +196,27 @@ let p_2d = function(p){
             streamElement.play();
             getNowPlaying();
         }
-    }
+    };
 
-    p.windowResized = function(){
+    p.windowResized = function () {
         p.resizeCanvas(window.innerWidth, window.innerHeight);
         short_side = Math.min(p.width, p.height);
-    }
+    };
 
-    p.toggleDrawLoop = function(){
+    p.toggleDrawLoop = function () {
         sketch_running = !sketch_running;
-        if (sketch_running){
+        if (sketch_running) {
             p.loop();
         } else {
             p.noLoop();
         }
-    }
-}
+    };
+};
 
-const NOW_PLAYING_URL = "https://borschtrecords.ca/api/nowplaying"
-const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const NOW_PLAYING_URL = "https://borschtrecords.ca/api/nowplaying";
+const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(
+    navigator.userAgent,
+);
 // As of this writing, there appears to be a much-reported bug in Safari that prevents audio capture from a stream
 // All calls succeed without error, yet the output of the analyzer is always zeroes (only in Safari)
 // As a result, we'll include a special case for Safari to make the visualizer move based on a Perlin noise value while the stream is playing and unmuted
@@ -237,7 +256,9 @@ function initUI() {
     vizModeButton.addEventListener("mousedown", toggleVizMode);
     bandcampLinkButton.addEventListener("mousedown", openBandcampLink);
     sketchRunButton.addEventListener("mousedown", toggleSketchRunning);
-    vizModeButton.src = mode3D ? './assets/viz3d-mode-button.svg' : './assets/viz2d-mode-button.svg';
+    vizModeButton.src = mode3D
+        ? "./assets/viz3d-mode-button.svg"
+        : "./assets/viz2d-mode-button.svg";
     if (isMob) {
         volumeSlider.remove();
         titleText.style.fontSize = TITLE_TEXT_SIZE + "px";
@@ -260,31 +281,38 @@ function initUI() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     initUI();
 });
 
 function getNowPlaying() {
     const now = Date.now();
-    if (audio_started && (now - lastRequest) > RATE_LIMIT) {
+    if (audio_started && now - lastRequest > RATE_LIMIT) {
         lastRequest = now;
-        fetch(NOW_PLAYING_URL).then(function (response) {
-            return response.json();
-        }).then(function (data) {
-            radioData = data[0];
-            console.log(radioData);
-            if (radioData.live.is_live) {
-                timeRemaining = 30 * 1000;
-                trackText.innerText = "> LIVE <" + "\n" + radioData.live.streamer_name;
-            } else {
-                timeRemaining = 1000 * radioData.now_playing.remaining;
-                trackText.innerText = radioData.now_playing.song.artist + "\n" + radioData.now_playing.song.title;
-            }
-            setTimeout(getNowPlaying, 1000 + timeRemaining);
-        }).catch(function (err) {
-            console.log('Fetch Error :-S', err);
-            setTimeout(getNowPlaying, 30 * 1000);
-        });
+        fetch(NOW_PLAYING_URL)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                radioData = data[0];
+                console.log(radioData);
+                if (radioData.live.is_live) {
+                    timeRemaining = 30 * 1000;
+                    trackText.innerText =
+                        "> LIVE <" + "\n" + radioData.live.streamer_name;
+                } else {
+                    timeRemaining = 1000 * radioData.now_playing.remaining;
+                    trackText.innerText =
+                        radioData.now_playing.song.artist +
+                        "\n" +
+                        radioData.now_playing.song.title;
+                }
+                setTimeout(getNowPlaying, 1000 + timeRemaining);
+            })
+            .catch(function (err) {
+                console.log("Fetch Error :-S", err);
+                setTimeout(getNowPlaying, 30 * 1000);
+            });
     }
 }
 
@@ -292,15 +320,15 @@ function toggleMute() {
     viz.initAudio();
     if (streamElement.muted) {
         streamElement.muted = false;
-        muteButton.src = './assets/volume-button.svg';
+        muteButton.src = "./assets/volume-button.svg";
     } else {
         streamElement.muted = true;
-        muteButton.src = './assets/mute-button.svg';
+        muteButton.src = "./assets/mute-button.svg";
     }
 }
 
 function openBandcampLink() {
-    window.open('https://borschtrecords.bandcamp.com/');
+    window.open("https://borschtrecords.bandcamp.com/");
 }
 
 function openDonateLink() {
@@ -311,24 +339,24 @@ function setVolume() {
     streamElement.volume = easeInSine(volumeSlider.value);
 }
 
-function toggleVizMode(){
+function toggleVizMode() {
     mode3D = !mode3D;
     viz.remove();
-    if (mode3D){
+    if (mode3D) {
         viz = new p5(p_3d);
-        vizModeButton.src = './assets/viz3d-mode-button.svg';
+        vizModeButton.src = "./assets/viz3d-mode-button.svg";
     } else {
         viz = new p5(p_2d);
-        vizModeButton.src = './assets/viz2d-mode-button.svg';
+        vizModeButton.src = "./assets/viz2d-mode-button.svg";
     }
-    sketchRunButton.src = './assets/sketch-running-button.svg';
+    sketchRunButton.src = "./assets/sketch-running-button.svg";
 }
 
-function toggleSketchRunning(){
+function toggleSketchRunning() {
     viz.toggleDrawLoop();
-    if (sketch_running){
-        sketchRunButton.src = './assets/sketch-running-button.svg';
+    if (sketch_running) {
+        sketchRunButton.src = "./assets/sketch-running-button.svg";
     } else {
-        sketchRunButton.src = './assets/sketch-paused-button.svg';
+        sketchRunButton.src = "./assets/sketch-paused-button.svg";
     }
 }
