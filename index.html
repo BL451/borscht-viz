@@ -20,12 +20,20 @@
     <h1 id="titleText" class="headerText">Borscht Radio</h1>
     <div id="player" class="player">
         <p id="trackText" class="trackText" style="font-size: 22px; line-height: 26.4px;"> </p>
-        <img id="muteButton" src="./assets/mute-button.svg" class="button muteButton" width="42" height="42"
+        <div id="playerButtons" class="playerButtons">
+            <img id="sketchRunButton" src="./assets/sketch-running-button.svg" class="button playerButton" width="42" height="42"
             style="width: 42px; height: 42px;">
+            <img id="muteButton" src="./assets/mute-button.svg" class="button playerButton" width="42" height="42"
+            style="width: 42px; height: 42px;">
+            <img id="vizModeButton" src="./assets/viz3d-mode-button.svg" class="button playerButton" width="42" height="42"
+            style="width: 42px; height: 42px;">
+        </div>
         <input id="volumeSlider" type="range" min="0" max="1" step="1e-18" class="slider">
     </div>
     <img id="donateButton" src="./assets/heart-hand-button.svg" class="button donateButton" width="42" height="42"
         style="width: 42px; height: 42px;">
+    <img id="bandcampButton" src="./assets/external-link-button.svg" class="button bandcampLinkButton" width="42" height="42"
+    style="width: 42px; height: 42px;">
     <script src="./src/sketch.js"></script>
 </body>
 

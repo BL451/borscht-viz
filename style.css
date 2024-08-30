@@ -118,14 +118,30 @@ canvas {
     bottom: 16px;
 }
 
-.muteButton {
+.playerButtons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
     width: 100%;
-    position: absolute;
+    height: 128px;
+    bottom: 22px;
+}
+
+.playerButton {
     bottom: 48px;
+    padding: 8px;
 }
 
 .trackText {
     width: 100%;
     position: absolute;
     bottom: 80px;
+}
+
+.bandcampLinkButton {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
 }
