@@ -1,4 +1,6 @@
-let theShader, next;
+let theShader = undefined;
+let shaderLoaded = false;
+let next = undefined;
 let z = 0;
 let level = 0;
 let prelevel = 0;
@@ -30,6 +32,26 @@ let mode3D = true;
 let viz = null;
 let sketch_running = true;
 
+const NOW_PLAYING_URL = "https://borschtrecords.ca/api/nowplaying";
+const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(
+    navigator.userAgent,
+);
+// As of this writing, there appears to be a much-reported bug in Safari that prevents audio capture from a stream
+// All calls succeed without error, yet the output of the analyzer is always zeroes (only in Safari)
+// As a result, we'll include a special case for Safari to make the visualizer move based on a Perlin noise value while the stream is playing and unmuted
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+function shaderSuccess() {
+    //console.log("Shader loaded");
+    shaderLoaded = true;
+}
+
+function shaderFailed(e) {
+    console.log("Shader failed to load:");
+    console.log(e.message);
+    shaderLoaded = false;
+}
+
 // p5 source that runs in 3D mode
 let p_3d = function (p) {
     p.preload = function () {
@@ -37,11 +59,15 @@ let p_3d = function (p) {
             theShader = p.loadShader(
                 "./src/shaders/blob/vert.glsl",
                 "./src/shaders/blob/frag-mobile.glsl",
+                shaderSuccess,
+                shaderFailed,
             );
         } else {
             theShader = p.loadShader(
                 "./src/shaders/blob/vert.glsl",
                 "./src/shaders/blob/frag.glsl",
+                shaderSuccess,
+                shaderFailed,
             );
         }
     };
@@ -61,6 +87,7 @@ let p_3d = function (p) {
         LEVEL_GAIN = 0.1;
         Z_GAIN = 0.07;
         sketch_running = true;
+        p.fill(0);
     };
 
     p.draw = function () {
@@ -81,15 +108,21 @@ let p_3d = function (p) {
         // shader() sets the active shader with our shader
         next.begin();
         p.clear();
-        // setUniform() sends values to the shader
-        theShader.setUniform("u_resolution", [p.width, p.height]);
-        theShader.setUniform("u_time", p.millis() / 1000);
-        theShader.setUniform("u_z", z);
-        theShader.setUniform("u_level", 2 * level);
-        p.shader(theShader);
+        // Ther
+        if (shaderLoaded) {
+            // setUniform() sends values to the shader
+            theShader.setUniform("u_resolution", [p.width, p.height]);
+            theShader.setUniform("u_time", p.millis() / 1000);
+            theShader.setUniform("u_z", z);
+            theShader.setUniform("u_level", 2 * level);
+            p.shader(theShader);
 
-        // rect gives us some geometry on the screen
-        p.rect(0, 0, p.width, p.height);
+            // rect gives us some geometry on the screen
+            p.rect(0, 0, p.width, p.height);
+        } else {
+            console.log("Preload didn't preload!");
+        }
+
         next.end();
         p.image(next, 0, 0);
 
@@ -138,7 +171,6 @@ let p_2d = function (p) {
         p.frameRate(fps);
         streamElement = document.getElementById("stream");
         // instantiate UI
-        //initUI();
         fft = new p5.FFT(0.6, 32);
         p.background(0);
         p.colorMode(p.HSB);
@@ -213,15 +245,6 @@ let p_2d = function (p) {
     };
 };
 
-const NOW_PLAYING_URL = "https://borschtrecords.ca/api/nowplaying";
-const isMob = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(
-    navigator.userAgent,
-);
-// As of this writing, there appears to be a much-reported bug in Safari that prevents audio capture from a stream
-// All calls succeed without error, yet the output of the analyzer is always zeroes (only in Safari)
-// As a result, we'll include a special case for Safari to make the visualizer move based on a Perlin noise value while the stream is playing and unmuted
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
 // Resizing things for mobile and initializing the p5 sketch
 if (isMob) {
     UI_SIZE = 84;
@@ -256,6 +279,18 @@ function initUI() {
     vizModeButton.addEventListener("mousedown", toggleVizMode);
     bandcampLinkButton.addEventListener("mousedown", openBandcampLink);
     sketchRunButton.addEventListener("mousedown", toggleSketchRunning);
+    // This sets custom behaviour for media keys to override defaults
+    navigator.mediaSession.setActionHandler("play", function () {
+        console.log("Received play media key");
+    });
+    navigator.mediaSession.setActionHandler("pause", function () {
+        console.log("Received pause media key, toggling mute");
+        toggleMute();
+    });
+    navigator.mediaSession.setActionHandler("stop", function () {
+        console.log("Received stop media key");
+    });
+
     vizModeButton.src = mode3D
         ? "./assets/viz3d-mode-button.svg"
         : "./assets/viz2d-mode-button.svg";
@@ -343,6 +378,7 @@ function toggleVizMode() {
     mode3D = !mode3D;
     viz.remove();
     if (mode3D) {
+        shaderLoaded = false;
         viz = new p5(p_3d);
         vizModeButton.src = "./assets/viz3d-mode-button.svg";
     } else {
