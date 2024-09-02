@@ -342,7 +342,7 @@ function getNowPlaying() {
                         "\n" +
                         radioData.now_playing.song.title;
                 }
-                setTimeout(getNowPlaying, 1000 + timeRemaining);
+                setTimeout(getNowPlaying, 1500 + timeRemaining);
             })
             .catch(function (err) {
                 console.log("Fetch Error :-S", err);
